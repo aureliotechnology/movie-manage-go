@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    depends_on:
+      - postgres
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/movie_manage?sslmode=disable
+    platform: linux/amd64
+    volumes:
+      - .:/app
+      - /app/vendor
+    command: ['./main']
+
+  postgres:
+    image: postgres:15
+    container_name: postgres_movie_manage
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: movie_manage
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  sonarqube:
+    image: sonarqube:latest
+    container_name: sonarqube
+    ports:
+      - '9000:9000'
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube_db:5432/sonar
+    depends_on:
+      - sonarqube_db
+
+  sonarqube_db:
+    image: postgres:13
+    container_name: sonarqube_db
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonarqube_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  sonarqube_data:
